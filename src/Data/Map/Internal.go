@@ -43,6 +43,17 @@ type BTree struct {
 	size    int
 	compare CompareFn
 }
+type anyValuer interface {
+	AnyVal() any
+}
+
+func asTree(m interface{}) *BTree {
+	if val, ok := m.(anyValuer); ok {
+		return val.AnyVal().(*BTree)
+	}
+	return m.(*BTree)
+}
+
 
 func NewBTree(cmp CompareFn) *BTree {
 	return &BTree{compare: cmp}
@@ -388,7 +399,7 @@ func (t *BTree) UnionWith(other *BTree, f CombineFn) *BTree {
 
 	res := t
 	finalRes := other.Foldl(func(acc, key, value interface{}) interface{} {
-		tree := acc.(*BTree)
+		tree := asTree(acc)
 		existing, ok := tree.Lookup(key)
 		if ok {
 			newVal := f(existing, value)
@@ -397,7 +408,7 @@ func (t *BTree) UnionWith(other *BTree, f CombineFn) *BTree {
 		return tree.Insert(key, value)
 	}, res)
 
-	return finalRes.(*BTree)
+	return asTree(finalRes)
 }
 
 func (t *BTree) IntersectionWith(other *BTree, f CombineFn) *BTree {
@@ -412,7 +423,7 @@ func (t *BTree) IntersectionWith(other *BTree, f CombineFn) *BTree {
 	}
 
 	finalRes := smaller.Foldl(func(acc, key, value interface{}) interface{} {
-		tree := acc.(*BTree)
+		tree := asTree(acc)
 		if otherVal, ok := larger.Lookup(key); ok {
 			var newVal interface{}
 			if smaller == t {
@@ -425,7 +436,7 @@ func (t *BTree) IntersectionWith(other *BTree, f CombineFn) *BTree {
 		return tree
 	}, res)
 
-	return finalRes.(*BTree)
+	return asTree(finalRes)
 }
 
 func (t *BTree) Difference(other *BTree) *BTree {
@@ -435,11 +446,11 @@ func (t *BTree) Difference(other *BTree) *BTree {
 	}
 
 	finalRes := other.Foldl(func(acc, key, _ interface{}) interface{} {
-		tree := acc.(*BTree)
+		tree := asTree(acc)
 		return tree.Delete(key)
 	}, res)
 
-	return finalRes.(*BTree)
+	return asTree(finalRes)
 }
 
 
@@ -452,14 +463,24 @@ var Empty = func() interface{} {
 	// In our FFI, we pass cmp on EVERY operation.
 	// So NewBTree(nil) is fine.
 	return NewBTree(nil)
-}
+}()
 
 func IsEmpty(m interface{}) bool {
-	return m.(*BTree).Size() == 0
+	return asTree(m).Size() == 0
+}
+
+func Singleton(k interface{}) func(interface{}) interface{} {
+	return func(v interface{}) interface{} {
+		return &BTree{
+			root: &Node{items: []Item{{k, v}}},
+			size: 1,
+			compare: nil, // compare will be injected on next insert
+		}
+	}
 }
 
 func InsertImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, v interface{}, m interface{}) interface{} {
-	tree := m.(*BTree)
+	tree := asTree(m)
 	cmp := func(a, b interface{}) int {
 		return fromOrdering(compare(a)(b))
 	}
@@ -472,7 +493,7 @@ func InsertImpl(compare func(interface{}) func(interface{}) interface{}, fromOrd
 }
 
 func InsertWithImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, k interface{}, v interface{}, m interface{}) interface{} {
-	tree := m.(*BTree)
+	tree := asTree(m)
 	cmp := func(a, b interface{}) int {
 		return fromOrdering(compare(a)(b))
 	}
@@ -490,7 +511,7 @@ func InsertWithImpl(compare func(interface{}) func(interface{}) interface{}, fro
 }
 
 func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
-	tree := m.(*BTree)
+	tree := asTree(m)
 	if tree.Size() == 0 {
 		return nothing
 	}
@@ -506,7 +527,7 @@ func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare
 }
 
 func DeleteImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
-	tree := m.(*BTree)
+	tree := asTree(m)
 	if tree.Size() == 0 {
 		return m
 	}
@@ -518,16 +539,16 @@ func DeleteImpl(compare func(interface{}) func(interface{}) interface{}, fromOrd
 }
 
 func KeysImpl(m interface{}) []interface{} {
-	return m.(*BTree).Keys()
+	return asTree(m).Keys()
 }
 
 func ValuesImpl(m interface{}) []interface{} {
-	return m.(*BTree).Values()
+	return asTree(m).Values()
 }
 
 func UnionWithImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
-	t1 := m1.(*BTree)
-	t2 := m2.(*BTree)
+	t1 := asTree(m1)
+	t2 := asTree(m2)
 	cmp := func(a, b interface{}) int {
 		return fromOrdering(compare(a)(b))
 	}
@@ -539,8 +560,8 @@ func UnionWithImpl(compare func(interface{}) func(interface{}) interface{}, from
 }
 
 func IntersectionWithImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
-	t1 := m1.(*BTree)
-	t2 := m2.(*BTree)
+	t1 := asTree(m1)
+	t2 := asTree(m2)
 	cmp := func(a, b interface{}) int {
 		return fromOrdering(compare(a)(b))
 	}
@@ -552,8 +573,8 @@ func IntersectionWithImpl(compare func(interface{}) func(interface{}) interface{
 }
 
 func DifferenceImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, m1 interface{}, m2 interface{}) interface{} {
-	t1 := m1.(*BTree)
-	t2 := m2.(*BTree)
+	t1 := asTree(m1)
+	t2 := asTree(m2)
 	cmp := func(a, b interface{}) int {
 		return fromOrdering(compare(a)(b))
 	}
@@ -562,6 +583,49 @@ func DifferenceImpl(compare func(interface{}) func(interface{}) interface{}, fro
 	return t1.Difference(t2)
 }
 
-func Size(m interface{}) int {
-	return m.(*BTree).Size()
+func SizeImpl(m interface{}) int {
+	return asTree(m).Size()
+}
+
+func (n *Node) mapValues(f func(interface{}) interface{}) *Node {
+	if n == nil {
+		return nil
+	}
+	newNode := &Node{
+		items:    make([]Item, len(n.items), maxDegree),
+		children: make([]*Node, len(n.children), maxDegree+1),
+	}
+	for i, item := range n.items {
+		newNode.items[i] = Item{Key: item.Key, Value: f(item.Value)}
+	}
+	for i, child := range n.children {
+		newNode.children[i] = child.mapValues(f)
+	}
+	return newNode
+}
+
+func (t *BTree) MapValues(f func(interface{}) interface{}) *BTree {
+	return &BTree{
+		root:    t.root.mapValues(f),
+		size:    t.size,
+		compare: t.compare,
+	}
+}
+
+func MapImpl(f func(interface{}) interface{}, m interface{}) interface{} {
+	return asTree(m).MapValues(f)
+}
+
+func FoldlImpl(f func(interface{}) func(interface{}) func(interface{}) interface{}, z interface{}, m interface{}) interface{} {
+	tree := asTree(m)
+	return tree.Foldl(func(acc, key, value interface{}) interface{} {
+		return f(acc)(key)(value)
+	}, z)
+}
+
+func FoldrImpl(f func(interface{}) func(interface{}) func(interface{}) interface{}, z interface{}, m interface{}) interface{} {
+	tree := asTree(m)
+	return tree.Foldr(func(acc, key, value interface{}) interface{} {
+		return f(acc)(key)(value)
+	}, z)
 }

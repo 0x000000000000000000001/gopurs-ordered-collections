@@ -29,9 +29,9 @@ import Prelude hiding (map)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Eq (class Eq1)
 import Data.Foldable (class Foldable)
-import Data.Function.Uncurried (mkFn3)
+
 import Data.List.NonEmpty (NonEmptyList)
-import Data.Map.Internal as Internal
+
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Ord (class Ord1)
 import Data.Semigroup.Foldable (class Foldable1, foldMap1, foldr1, foldl1)
@@ -41,6 +41,7 @@ import Data.Tuple (Tuple(..))
 import Data.Unfoldable (class Unfoldable, class Unfoldable1, unfoldr1)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Safe.Coerce (coerce)
+import Data.List as L
 
 -- | `NonEmptySet a` represents a non-empty set of values of type `a`
 newtype NonEmptySet a = NonEmptySet (Set a)
@@ -91,10 +92,12 @@ toUnfoldable = coerce (Set.toUnfoldable :: Set a -> f a)
 
 -- | Convert a set to a non-empty unfoldable structure.
 toUnfoldable1 :: forall f a. Unfoldable1 f => NonEmptySet a -> f a
-toUnfoldable1 = unfoldr1 (stepNext <$> _) <<< stepHead <<< Internal.toMapIter <<< Set.toMap <<< coerce
-  where
-  stepHead = Internal.stepAscCps (mkFn3 \k _ next -> Tuple k next) \_ -> unsafeCrashWith "toUnfoldable1: impossible"
-  stepNext = Internal.stepAscCps (mkFn3 \k _ next -> Just (Tuple k next)) \_ -> Nothing
+toUnfoldable1 (NonEmptySet s) =
+  let l = Set.toUnfoldable s :: L.List a
+  in unfoldr1 (\lst -> case L.uncons lst of
+    Just { head, tail } -> Tuple head (if L.null tail then Nothing else Just tail)
+    Nothing -> unsafeCrashWith "toUnfoldable1: empty set"
+  ) l
 
 -- | Maps over the values in a set.
 -- |

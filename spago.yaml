@@ -1,0 +1,26 @@
+package:
+  name: "ordered-collections"
+  dependencies:
+    - arrays
+    - foldable-traversable
+    - gen
+    - lists
+    - maybe
+    - partial
+    - prelude
+    - st
+    - tailrec
+    - tuples
+    - unfoldable
+
+  test:
+    main: Test.Main
+    dependencies:
+      - assert
+      - console
+      - minibench
+      - quickcheck
+
+workspace:
+  packageSet:
+    registry: 77.7.0
