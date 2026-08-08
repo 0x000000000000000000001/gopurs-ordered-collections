@@ -6,7 +6,7 @@ module Data.Map
 
 import Prelude (class Eq, class Monoid, class Ord, class Semigroup, append, void, (<<<))
 
-import Data.Map.Internal (Map, alter, checkValid, delete, difference, empty, filterKeys, findMax, findMin, fromFoldable, insert, insertWith, intersection, intersectionWith, isEmpty, lookup, member, pop, singleton, size, submap, union, unionWith, update, values)
+import Data.Map.Internal (Map, alter, any, anyWithKey, catMaybes, checkValid, delete, difference, empty, filter, filterKeys, filterWithKey, findMax, findMin, fromFoldable, fromFoldableWith, fromFoldableWithIndex, insert, insertWith, intersection, intersectionWith, isEmpty, isSubmap, lookup, lookupLE, lookupLT, lookupGE, lookupGT, mapMaybe, mapMaybeWithKey, member, pop, singleton, size, submap, union, unionWith, update, values, toUnfoldable, toUnfoldableUnordered)
 import Data.Newtype (class Newtype)
 import Data.Set (Set, fromMap)
 

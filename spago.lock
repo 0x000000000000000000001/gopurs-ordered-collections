@@ -675,13 +675,154 @@
         "zipperarray": "2.0.0"
       }
     },
-    "extra_packages": {}
+    "extra_packages": {
+      "aff": {
+        "path": "../gopurs-aff"
+      },
+      "argonaut-core": {
+        "path": "../gopurs-argonaut-core"
+      },
+      "arrays": {
+        "path": "../gopurs-arrays"
+      },
+      "assert": {
+        "path": "../gopurs-assert"
+      },
+      "avar": {
+        "path": "../gopurs-avar"
+      },
+      "catenable-lists": {
+        "path": "../gopurs-catenable-lists"
+      },
+      "console": {
+        "path": "../gopurs-console"
+      },
+      "datetime": {
+        "path": "../gopurs-datetime"
+      },
+      "effect": {
+        "path": "../gopurs-effect"
+      },
+      "enums": {
+        "path": "../gopurs-enums"
+      },
+      "exceptions": {
+        "path": "../gopurs-exceptions"
+      },
+      "foldable-traversable": {
+        "path": "../gopurs-foldable-traversable"
+      },
+      "foreign": {
+        "path": "../gopurs-foreign"
+      },
+      "foreign-object": {
+        "path": "../gopurs-foreign-object"
+      },
+      "functions": {
+        "path": "../gopurs-functions"
+      },
+      "integers": {
+        "path": "../gopurs-integers"
+      },
+      "js-promise": {
+        "path": "../gopurs-js-promise"
+      },
+      "js-promise-aff": {
+        "path": "../gopurs-js-promise-aff"
+      },
+      "js-uri": {
+        "path": "../gopurs-js-uri"
+      },
+      "lazy": {
+        "path": "../gopurs-lazy"
+      },
+      "node-event-emitter": {
+        "path": "../gopurs-node-event-emitter"
+      },
+      "node-fs": {
+        "path": "../gopurs-node-fs"
+      },
+      "node-http": {
+        "path": "../gopurs-node-http"
+      },
+      "node-net": {
+        "path": "../gopurs-node-net"
+      },
+      "node-path": {
+        "path": "../gopurs-node-path"
+      },
+      "node-process": {
+        "path": "../gopurs-node-process"
+      },
+      "node-streams": {
+        "path": "../gopurs-node-streams"
+      },
+      "now": {
+        "path": "../gopurs-now"
+      },
+      "nullable": {
+        "path": "../gopurs-nullable"
+      },
+      "numbers": {
+        "path": "../gopurs-numbers"
+      },
+      "partial": {
+        "path": "../gopurs-partial"
+      },
+      "prelude": {
+        "path": "../gopurs-prelude"
+      },
+      "quickcheck": {
+        "path": "../gopurs-quickcheck"
+      },
+      "random": {
+        "path": "../gopurs-random"
+      },
+      "record": {
+        "path": "../gopurs-record"
+      },
+      "refs": {
+        "path": "../gopurs-refs"
+      },
+      "run": {
+        "path": "../gopurs-run"
+      },
+      "simple-json": {
+        "path": "../gopurs-simple-json"
+      },
+      "spec": {
+        "path": "../gopurs-spec"
+      },
+      "st": {
+        "path": "../gopurs-st"
+      },
+      "strings": {
+        "path": "../gopurs-strings"
+      },
+      "test": {
+        "path": "../gopurs-test"
+      },
+      "unfoldable": {
+        "path": "../gopurs-unfoldable"
+      },
+      "unsafe-coerce": {
+        "path": "../gopurs-unsafe-coerce"
+      },
+      "uuid": {
+        "path": "../gopurs-uuid"
+      },
+      "variant": {
+        "path": "../gopurs-variant"
+      },
+      "yoga-json": {
+        "path": "../gopurs-yoga-json"
+      }
+    }
   },
   "packages": {
     "arrays": {
-      "type": "registry",
-      "version": "7.3.0",
-      "integrity": "sha256-GD4z7LCi9wzi7FCQqbWhvs8paoUK9NO+HwgXZ+KP8Rk=",
+      "type": "local",
+      "path": "../gopurs-arrays",
       "dependencies": [
         "bifunctors",
         "control",
@@ -700,9 +841,8 @@
       ]
     },
     "assert": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-hCZ1J8/71nQiRwsSV2j7iicppScOegBFZrLI6sPf9F8=",
+      "type": "local",
+      "path": "../gopurs-assert",
       "dependencies": [
         "console",
         "effect",
@@ -722,9 +862,8 @@
       ]
     },
     "console": {
-      "type": "registry",
-      "version": "6.1.0",
-      "integrity": "sha256-3T5PPz1mATZmV0C4GzkCkpLlCa5xG7u8ZNgnLrrrI1Q=",
+      "type": "local",
+      "path": "../gopurs-console",
       "dependencies": [
         "effect",
         "prelude"
@@ -774,9 +913,8 @@
       ]
     },
     "effect": {
-      "type": "registry",
-      "version": "4.0.0",
-      "integrity": "sha256-DdqU3bncRTjgMVPPRlAuGHVeajSPEcRaRhNuio7if6s=",
+      "type": "local",
+      "path": "../gopurs-effect",
       "dependencies": [
         "prelude"
       ]
@@ -793,9 +931,8 @@
       ]
     },
     "enums": {
-      "type": "registry",
-      "version": "6.0.1",
-      "integrity": "sha256-sdZOmLX5+5pASGpvVyT0vSD5BBYQjZiayjV5XiPutso=",
+      "type": "local",
+      "path": "../gopurs-enums",
       "dependencies": [
         "control",
         "either",
@@ -810,9 +947,8 @@
       ]
     },
     "exceptions": {
-      "type": "registry",
-      "version": "6.1.0",
-      "integrity": "sha256-nRrr+N0wk0TUFOWLR7e1n1oxcXo/X345bQUtoY9lW6A=",
+      "type": "local",
+      "path": "../gopurs-exceptions",
       "dependencies": [
         "effect",
         "either",
@@ -829,9 +965,8 @@
       ]
     },
     "foldable-traversable": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-NGGWyCio/xjce6fPP7y3wwg7CheqllID6aJudDxbWhA=",
+      "type": "local",
+      "path": "../gopurs-foldable-traversable",
       "dependencies": [
         "bifunctors",
         "const",
@@ -847,9 +982,8 @@
       ]
     },
     "functions": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-0jgtOr+SFO4UScKc40oA/9Vdcf2rLn3h3vZlY0KfqVo=",
+      "type": "local",
+      "path": "../gopurs-functions",
       "dependencies": [
         "prelude"
       ]
@@ -903,9 +1037,8 @@
       ]
     },
     "integers": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-Y8yozC1uHRLcruobEyv5/bMKzE1BoKJ/olHv6o+bgm8=",
+      "type": "local",
+      "path": "../gopurs-integers",
       "dependencies": [
         "maybe",
         "numbers",
@@ -922,13 +1055,11 @@
       ]
     },
     "lazy": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-MHRC+1Pc+AjortBp4b/e1e6KpEpsDwaJBNBB7TOL+1I=",
+      "type": "local",
+      "path": "../gopurs-lazy",
       "dependencies": [
         "control",
         "foldable-traversable",
-        "invariant",
         "prelude"
       ]
     },
@@ -1012,13 +1143,11 @@
       ]
     },
     "numbers": {
-      "type": "registry",
-      "version": "9.0.1",
-      "integrity": "sha256-ZydYckgwRAnRaFC7pu6fADhzdwX+UqHZrfJyet64zls=",
+      "type": "local",
+      "path": "../gopurs-numbers",
       "dependencies": [
         "functions",
-        "maybe",
-        "prelude"
+        "maybe"
       ]
     },
     "orders": {
@@ -1031,15 +1160,13 @@
       ]
     },
     "partial": {
-      "type": "registry",
-      "version": "4.0.0",
-      "integrity": "sha256-mdrlJBAgFMh79hNRW39uv7c+BwnnaOrAMmdh7+VhEhs=",
+      "type": "local",
+      "path": "../gopurs-partial",
       "dependencies": []
     },
     "prelude": {
-      "type": "registry",
-      "version": "6.0.2",
-      "integrity": "sha256-IqykrDRquGUD/LRSad7y75hZv3bUsGQ4knc8tdez8Qw=",
+      "type": "local",
+      "path": "../gopurs-prelude",
       "dependencies": []
     },
     "profunctor": {
@@ -1058,9 +1185,8 @@
       ]
     },
     "quickcheck": {
-      "type": "registry",
-      "version": "8.0.1",
-      "integrity": "sha256-SfW+maesCt0jnnFhfrgJZGPcWLj8oFcGbcDIVklmdzc=",
+      "type": "local",
+      "path": "../gopurs-quickcheck",
       "dependencies": [
         "arrays",
         "console",
@@ -1087,23 +1213,21 @@
         "strings",
         "tailrec",
         "transformers",
-        "tuples"
+        "tuples",
+        "unfoldable"
       ]
     },
     "random": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-7sZRo6P9UIiXDZ9s2QL9T8h3wlIwLdQrR4+oZKOijQw=",
+      "type": "local",
+      "path": "../gopurs-random",
       "dependencies": [
         "effect",
-        "integers",
-        "prelude"
+        "integers"
       ]
     },
     "record": {
-      "type": "registry",
-      "version": "4.0.0",
-      "integrity": "sha256-WQ8fqp4X1wTA70J4qUcPW4Z7DCwx6e5KJnT/EuTdWSc=",
+      "type": "local",
+      "path": "../gopurs-record",
       "dependencies": [
         "functions",
         "prelude",
@@ -1111,9 +1235,8 @@
       ]
     },
     "refs": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-KKD5G9dR2SauuDGULUJsxjqDOEi1Jqm+2Sq5U2mY8YU=",
+      "type": "local",
+      "path": "../gopurs-refs",
       "dependencies": [
         "effect",
         "prelude"
@@ -1128,11 +1251,9 @@
       ]
     },
     "st": {
-      "type": "registry",
-      "version": "6.2.0",
-      "integrity": "sha256-WI4MEkkwUd4pnwZQ3G8VKWgX5t1RSNJludm5e9boaRo=",
+      "type": "local",
+      "path": "../gopurs-st",
       "dependencies": [
-        "effect",
         "partial",
         "prelude",
         "tailrec",
@@ -1140,9 +1261,8 @@
       ]
     },
     "strings": {
-      "type": "registry",
-      "version": "6.0.1",
-      "integrity": "sha256-FNto2hoNW5Da6W6crIk77YXMagBvOGHZE1kO7eZ1vLM=",
+      "type": "local",
+      "path": "../gopurs-strings",
       "dependencies": [
         "arrays",
         "control",
@@ -1216,9 +1336,8 @@
       "dependencies": []
     },
     "unfoldable": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-BK/6By1sKp/ztk+9CF3q43SV0QDTLVdsGqFerKHSmbg=",
+      "type": "local",
+      "path": "../gopurs-unfoldable",
       "dependencies": [
         "foldable-traversable",
         "maybe",
@@ -1228,9 +1347,8 @@
       ]
     },
     "unsafe-coerce": {
-      "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-0L1QsaY20OILjfU5TV72d3U/tSjhmL9hJ32WMp857Lk=",
+      "type": "local",
+      "path": "../gopurs-unsafe-coerce",
       "dependencies": []
     }
   }

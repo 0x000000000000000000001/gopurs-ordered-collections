@@ -629,3 +629,24 @@ func FoldrImpl(f func(interface{}) func(interface{}) func(interface{}) interface
 		return f(acc)(key)(value)
 	}, z)
 }
+
+
+func FilterKeysImpl(p func(interface{}) interface{}, m interface{}) interface{} {
+	tree := asTree(m)
+	res := NewBTree(tree.compare)
+	finalRes := tree.Foldl(func(acc, key, value interface{}) interface{} {
+		accTree := asTree(acc)
+		pv := p(key)
+		var isTrue bool
+		if val, ok := pv.(gopurs_runtime.Value); ok {
+			isTrue = val.IntVal != 0
+		} else {
+			panic("Expected Value from p(key)")
+		}
+		if isTrue {
+			return accTree.Insert(key, value)
+		}
+		return accTree
+	}, res)
+	return asTree(finalRes)
+}

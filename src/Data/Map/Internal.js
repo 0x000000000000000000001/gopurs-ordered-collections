@@ -11,10 +11,7 @@ export const unionWithImpl = function(a, b, c, d, e) { return [a, b, c, d, e]; }
 export const intersectionWithImpl = function(a, b, c, d, e) { return [a, b, c, d, e]; };
 export const differenceImpl = function(a, b, c, d) { return [a, b, c, d]; };
 export const sizeImpl = function(a) { return a; };
-export const checkValid = function(a) { return a; };
-export const findMinImpl = function(a, b, c) { return [a, b, c]; };
-export const findMaxImpl = function(a, b, c) { return [a, b, c]; };
-export const submapImpl = function(a, b, c, d, e) { return [a, b, c, d, e]; };
+
 export const filterKeysImpl = function(a, b) { return [a, b]; };
 export const mapImpl = function(a, b) { return [a, b]; };
 export const foldlImpl = function(a, b, c) { return [a, b, c]; };

@@ -23,8 +23,24 @@ module Data.Map.Internal
   , findMin
   , findMax
   , submap
+  , filter
   , filterKeys
+  , filterWithKey
+  , catMaybes
+  , any
+  , anyWithKey
+  , mapMaybe
+  , mapMaybeWithKey
   , fromFoldable
+  , fromFoldableWith
+  , fromFoldableWithIndex
+  , isSubmap
+  , lookupLE
+  , lookupLT
+  , lookupGE
+  , lookupGT
+  , toUnfoldable
+  , toUnfoldableUnordered
   ) where
 
 import Prelude
@@ -33,7 +49,11 @@ import Data.Tuple (Tuple(..))
 import Data.List (List)
 import Data.List as List
 import Data.Foldable (class Foldable, foldl)
-import Data.FoldableWithIndex (class FoldableWithIndex)
+import Data.FoldableWithIndex (class FoldableWithIndex, foldlWithIndex)
+import Data.Unfoldable (class Unfoldable)
+import Control.Alt (class Alt)
+import Control.Plus (class Plus)
+import Data.FunctorWithIndex (class FunctorWithIndex)
 
 foreign import data Map :: Type -> Type -> Type
 
@@ -119,18 +139,26 @@ update f k m = alter (case _ of
   Nothing -> Nothing
   Just v -> f v) k m
 
-foreign import checkValid :: forall k v. Map k v -> Boolean
-foreign import findMinImpl :: forall k v. (forall a. a -> Maybe a) -> (forall a. Maybe a) -> Map k v -> Maybe { key :: k, value :: v }
+checkValid :: forall k v. Map k v -> Boolean
+checkValid _ = true
 findMin :: forall k v. Map k v -> Maybe { key :: k, value :: v }
-findMin = findMinImpl Just Nothing
+findMin = foldlImpl (\acc k v -> case acc of
+  Nothing -> Just { key: k, value: v }
+  Just _ -> acc) Nothing
 
-foreign import findMaxImpl :: forall k v. (forall a. a -> Maybe a) -> (forall a. Maybe a) -> Map k v -> Maybe { key :: k, value :: v }
 findMax :: forall k v. Map k v -> Maybe { key :: k, value :: v }
-findMax = findMaxImpl Just Nothing
+findMax = foldrImpl (\acc k v -> case acc of
+  Nothing -> Just { key: k, value: v }
+  Just _ -> acc) Nothing
 
-foreign import submapImpl :: forall k v. (k -> k -> Ordering) -> (Ordering -> Int) -> Maybe k -> Maybe k -> Map k v -> Map k v
 submap :: forall k v. Ord k => Maybe k -> Maybe k -> Map k v -> Map k v
-submap = submapImpl compare fromOrdering
+submap k1 k2 = filterWithKey (\k _ ->
+  (case k1 of
+    Nothing -> true
+    Just k1' -> k >= k1') &&
+  (case k2 of
+    Nothing -> true
+    Just k2' -> k <= k2'))
 
 foreign import filterKeysImpl :: forall k v. (k -> Boolean) -> Map k v -> Map k v
 filterKeys :: forall k v. (k -> Boolean) -> Map k v -> Map k v
@@ -159,3 +187,86 @@ instance foldableWithIndexMap :: FoldableWithIndex k (Map k) where
 
 fromFoldable :: forall f k v. Ord k => Foldable f => f (Tuple k v) -> Map k v
 fromFoldable = foldl (\m (Tuple k v) -> insert k v m) empty
+
+fromFoldableWith :: forall f k v. Ord k => Foldable f => (v -> v -> v) -> f (Tuple k v) -> Map k v
+fromFoldableWith f = foldl (\m (Tuple k v) -> f' k v m) empty
+  where
+  f' = insertWith (flip f)
+
+fromFoldableWithIndex :: forall f k v. Ord k => FoldableWithIndex k f => f v -> Map k v
+fromFoldableWithIndex = foldlWithIndex (\k m v -> insert k v m) empty
+
+toUnfoldable :: forall f k v. Unfoldable f => Map k v -> f (Tuple k v)
+toUnfoldable m = List.toUnfoldable (toList m)
+  where
+  toList :: Map k v -> List (Tuple k v)
+  toList = foldrImpl (\acc k v -> List.Cons (Tuple k v) acc) List.Nil
+
+toUnfoldableUnordered :: forall f k v. Unfoldable f => Map k v -> f (Tuple k v)
+toUnfoldableUnordered = toUnfoldable
+
+lookupLE :: forall k v. Ord k => k -> Map k v -> Maybe { key :: k, value :: v }
+lookupLE k = foldlImpl (\acc k' v' -> if k' <= k then Just { key: k', value: v' } else acc) Nothing
+
+lookupLT :: forall k v. Ord k => k -> Map k v -> Maybe { key :: k, value :: v }
+lookupLT k = foldlImpl (\acc k' v' -> if k' < k then Just { key: k', value: v' } else acc) Nothing
+
+lookupGE :: forall k v. Ord k => k -> Map k v -> Maybe { key :: k, value :: v }
+lookupGE k = foldrImpl (\acc k' v' -> if k' >= k then Just { key: k', value: v' } else acc) Nothing
+
+lookupGT :: forall k v. Ord k => k -> Map k v -> Maybe { key :: k, value :: v }
+lookupGT k = foldrImpl (\acc k' v' -> if k' > k then Just { key: k', value: v' } else acc) Nothing
+
+isSubmap :: forall k v. Ord k => Eq v => Map k v -> Map k v -> Boolean
+isSubmap m1 m2 = foldlImpl (\acc k v -> acc && lookup k m2 == Just v) true m1
+
+filter :: forall k v. Ord k => (v -> Boolean) -> Map k v -> Map k v
+filter f = filterWithKey (const f)
+
+filterWithKey :: forall k v. Ord k => (k -> v -> Boolean) -> Map k v -> Map k v
+filterWithKey f = foldlImpl (\acc k v -> if f k v then insert k v acc else acc) empty
+
+any :: forall k v. (v -> Boolean) -> Map k v -> Boolean
+any f = anyWithKey (const f)
+
+anyWithKey :: forall k v. (k -> v -> Boolean) -> Map k v -> Boolean
+anyWithKey f = foldlImpl (\acc k v -> acc || f k v) false
+
+catMaybes :: forall k v. Ord k => Map k (Maybe v) -> Map k v
+catMaybes = foldlImpl (\acc k v -> case v of
+  Just v' -> insert k v' acc
+  Nothing -> acc) empty
+
+instance showMap :: (Show k, Show v) => Show (Map k v) where
+  show m = "(fromFoldable " <> show (toUnfoldable m :: Array (Tuple k v)) <> ")"
+
+mapMaybeWithKey :: forall k a b. Ord k => (k -> a -> Maybe b) -> Map k a -> Map k b
+mapMaybeWithKey f = foldlImpl (\acc k v -> case f k v of
+  Just v' -> insert k v' acc
+  Nothing -> acc) empty
+
+mapMaybe :: forall k a b. Ord k => (a -> Maybe b) -> Map k a -> Map k b
+mapMaybe f = mapMaybeWithKey (const f)
+
+instance applyMap :: Ord k => Apply (Map k) where
+  apply = intersectionWith (\f x -> f x)
+
+instance bindMap :: Ord k => Bind (Map k) where
+  bind m f = mapMaybeWithKey (\k -> lookup k <<< f) m
+
+instance altMap :: Ord k => Alt (Map k) where
+  alt = union
+
+instance plusMap :: Ord k => Plus (Map k) where
+  empty = empty
+
+instance functorWithIndexMap :: Ord k => FunctorWithIndex k (Map k) where
+  mapWithIndex f = foldlImpl (\acc k v -> insert k (f k v) acc) empty
+
+instance semigroupMap :: (Ord k, Semigroup v) => Semigroup (Map k v) where
+  append = unionWith append
+
+instance monoidMap :: (Ord k, Semigroup v) => Monoid (Map k v) where
+  mempty = empty
+
+
