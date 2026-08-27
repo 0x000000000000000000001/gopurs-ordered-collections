@@ -55,7 +55,7 @@ func asTree(m interface{}) *BTree {
 }
 
 
-func NewBTree(cmp CompareFn) *BTree {
+func newBTree(cmp CompareFn) *BTree {
 	return &BTree{compare: cmp}
 }
 
@@ -412,7 +412,7 @@ func (t *BTree) UnionWith(other *BTree, f CombineFn) *BTree {
 }
 
 func (t *BTree) IntersectionWith(other *BTree, f CombineFn) *BTree {
-	res := NewBTree(t.compare)
+	res := newBTree(t.compare)
 	if t.size == 0 || other.size == 0 {
 		return res
 	}
@@ -461,8 +461,8 @@ var Empty = func() interface{} {
 	// but it will be replaced on the first insert since insert creates a new tree.
 	// Actually, an empty tree does not know its cmp until the first insert!
 	// In our FFI, we pass cmp on EVERY operation.
-	// So NewBTree(nil) is fine.
-	return NewBTree(nil)
+	// So newBTree(nil) is fine.
+	return newBTree(nil)
 }()
 
 func IsEmpty(m interface{}) bool {
@@ -485,7 +485,7 @@ func InsertImpl(compare func(interface{}) func(interface{}) interface{}, fromOrd
 		return fromOrdering(compare(a)(b))
 	}
 	if tree.Size() == 0 {
-		return NewBTree(cmp).Insert(k, v)
+		return newBTree(cmp).Insert(k, v)
 	}
 	// We must ensure the tree uses the current cmp
 	tree.compare = cmp
@@ -498,7 +498,7 @@ func InsertWithImpl(compare func(interface{}) func(interface{}) interface{}, fro
 		return fromOrdering(compare(a)(b))
 	}
 	if tree.Size() == 0 {
-		return NewBTree(cmp).Insert(k, v)
+		return newBTree(cmp).Insert(k, v)
 	}
 	tree.compare = cmp
 	
@@ -633,7 +633,7 @@ func FoldrImpl(f func(interface{}) func(interface{}) func(interface{}) interface
 
 func FilterKeysImpl(p func(interface{}) interface{}, m interface{}) interface{} {
 	tree := asTree(m)
-	res := NewBTree(tree.compare)
+	res := newBTree(tree.compare)
 	finalRes := tree.Foldl(func(acc, key, value interface{}) interface{} {
 		accTree := asTree(acc)
 		pv := p(key)
