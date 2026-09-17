@@ -21,6 +21,7 @@ import Effect (Effect)
 import Effect.Console (log)
 import Effect.Exception (throwException, error)
 import Partial.Unsafe (unsafePartial)
+import Safe.Coerce (coerce)
 import Test.QuickCheck ((<?>), (<=?), (===), quickCheck, quickCheck')
 import Test.QuickCheck.Arbitrary (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (elements, oneOf)
@@ -73,10 +74,25 @@ number n = n
 smallKeyToNumberMap :: M.Map SmallKey Int -> M.Map SmallKey Int
 smallKeyToNumberMap m = m
 
+unwrapFirstValues :: forall k v. M.SemigroupMap k (First v) -> M.Map k v
+unwrapFirstValues = coerce
+
 mapTests :: Effect Unit
 mapTests = do
 
   -- Data.Map
+
+  log "Test Map ordering is lexicographic over ascending key/value entries"
+  quickCheck $
+    compare (M.empty :: M.Map SmallKey Int) (M.singleton A 0) == LT
+      && compare (M.singleton A 9) (M.singleton B 0) == LT
+      && compare (M.singleton A 1) (M.singleton A 2) == LT
+      && compare (M.singleton A 1) (M.fromFoldable [Tuple A 1, Tuple B 0]) == LT
+      && compare (M.fromFoldable [Tuple A 1, Tuple B 2]) (M.fromFoldable [Tuple B 2, Tuple A 1]) == EQ
+
+  log "Test representational value role through SemigroupMap and First"
+  quickCheck $
+    M.lookup A (unwrapFirstValues (M.SemigroupMap (M.singleton A (First (number 7))))) == Just 7
 
   log "Test inserting into empty tree"
   quickCheck $ \k v -> M.lookup (smallKey k) (M.insert k v M.empty) == Just (number v)

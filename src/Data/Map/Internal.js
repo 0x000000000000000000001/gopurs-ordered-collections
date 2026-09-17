@@ -16,3 +16,8 @@ export const filterKeysImpl = function(a, b) { return [a, b]; };
 export const mapImpl = function(a, b) { return [a, b]; };
 export const foldlImpl = function(a, b, c) { return [a, b, c]; };
 export const foldrImpl = function(a, b, c) { return [a, b, c]; };
+
+// This checkout supplies its Map implementation through the native Go FFI.
+export const toArrayImpl = () => () => {
+  throw new Error("Data.Map.Internal.toArrayImpl requires the native Go backend");
+};

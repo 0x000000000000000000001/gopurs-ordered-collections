@@ -44,18 +44,21 @@ module Data.Map.Internal
   ) where
 
 import Prelude
+import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Data.List (List)
 import Data.List as List
 import Data.Foldable (class Foldable, foldl)
 import Data.FoldableWithIndex (class FoldableWithIndex, foldlWithIndex)
-import Data.Unfoldable (class Unfoldable)
+import Data.Unfoldable (class Unfoldable, unfoldr)
 import Control.Alt (class Alt)
 import Control.Plus (class Plus)
 import Data.FunctorWithIndex (class FunctorWithIndex)
 
 foreign import data Map :: Type -> Type -> Type
+
+type role Map nominal representational
 
 foreign import empty :: forall k v. Map k v
 
@@ -167,6 +170,9 @@ filterKeys = filterKeysImpl
 instance eqMap :: (Eq k, Eq v) => Eq (Map k v) where
   eq m1 m2 = size m1 == size m2 && keys m1 == keys m2 && values m1 == values m2
 
+instance ordMap :: (Ord k, Ord v) => Ord (Map k v) where
+  compare m1 m2 = compare (toUnfoldable m1 :: List (Tuple k v)) (toUnfoldable m2 :: List (Tuple k v))
+
 foreign import mapImpl :: forall k a b. (a -> b) -> Map k a -> Map k b
 
 instance functorMap :: Functor (Map k) where
@@ -196,11 +202,13 @@ fromFoldableWith f = foldl (\m (Tuple k v) -> f' k v m) empty
 fromFoldableWithIndex :: forall f k v. Ord k => FoldableWithIndex k f => f v -> Map k v
 fromFoldableWithIndex = foldlWithIndex (\k m v -> insert k v m) empty
 
+foreign import toArrayImpl :: forall k v a. (k -> v -> a) -> Map k v -> Array a
+
 toUnfoldable :: forall f k v. Unfoldable f => Map k v -> f (Tuple k v)
-toUnfoldable m = List.toUnfoldable (toList m)
+toUnfoldable m = unfoldr step 0
   where
-  toList :: Map k v -> List (Tuple k v)
-  toList = foldrImpl (\acc k v -> List.Cons (Tuple k v) acc) List.Nil
+  entries = toArrayImpl Tuple m
+  step i = (\entry -> Tuple entry (i + 1)) <$> Array.index entries i
 
 toUnfoldableUnordered :: forall f k v. Unfoldable f => Map k v -> f (Tuple k v)
 toUnfoldableUnordered = toUnfoldable
@@ -268,5 +276,3 @@ instance semigroupMap :: (Ord k, Semigroup v) => Semigroup (Map k v) where
 
 instance monoidMap :: (Ord k, Semigroup v) => Monoid (Map k v) where
   mempty = empty
-
-
