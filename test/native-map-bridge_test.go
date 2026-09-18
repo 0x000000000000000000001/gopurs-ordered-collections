@@ -97,6 +97,17 @@ func TestGeneratedBridgeCustomOrderingAndPersistence(t *testing.T) {
 			if lookup(cmp, 2, union) != 28 || lookup(cmp, 5, union) != 5 || Map_SizeImpl(union) != 5 {
 				t.Fatal("unionWith")
 			}
+			// Check both operand orders through the real runtime bridge.
+			unionSmallLeft := r.Apply5(_Gopurs_Map_UnionWithImpl, cmp, fromOrdering, combine, other, tree)
+			if lookup(cmp, 2, unionSmallLeft) != 82 || lookup(cmp, 5, unionSmallLeft) != 5 || Map_SizeImpl(unionSmallLeft) != 5 {
+				t.Fatal("unionWith with smaller left map")
+			}
+			// A singleton against four keys exercises the size-aware path.
+			single := insert(cmp, 2, 8, r.Box(Map_Empty))
+			unionSingletonLeft := r.Apply5(_Gopurs_Map_UnionWithImpl, cmp, fromOrdering, combine, single, tree)
+			if lookup(cmp, 2, unionSingletonLeft) != 82 || !reflect.DeepEqual(keys(unionSingletonLeft), expected) {
+				t.Fatal("unionWith with singleton left map")
+			}
 			intersection := r.Apply5(_Gopurs_Map_IntersectionWithImpl, cmp, fromOrdering, combine, tree, other)
 			if !reflect.DeepEqual(keys(intersection), []int64{2}) || lookup(cmp, 2, intersection) != 28 {
 				t.Fatal("intersectionWith")

@@ -1,5 +1,5 @@
 // Uses the existing compiled gopurs FFI generator; no PureScript rebuild required.
-// node test/native-map.mjs [--race] [--bench] [--curried-baseline]
+// node test/native-map.mjs [--race] [--bench | --bench-union] [--curried-baseline]
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -12,6 +12,7 @@ import { Nothing } from "../../gopurs/output/Data.Maybe/index.js";
 import { Tuple } from "../../gopurs/output/Data.Tuple/index.js";
 
 const baseline = process.argv.includes("--curried-baseline");
+const benchUnion = process.argv.includes("--bench-union");
 const directory = mkdtempSync(join(tmpdir(), "gopurs-map-ffi-"));
 try {
   let source = readFileSync(new URL("../src/Data/Map/Internal.go", import.meta.url), "utf8");
@@ -36,7 +37,8 @@ try {
   writeFileSync(join(directory, "bridge/Map.go"), 'package mapbridge\nimport gopurs_runtime "gopurs/output/runtime"\n' + prepared.content + "\n" + wrappers);
   copyFileSync(new URL("./native-map-bridge_test.go", import.meta.url), join(directory, "bridge/map_test.go"));
   const args = ["test", "-count=1", "-v"];
-  if (!process.argv.includes("--bench") || process.argv.includes("--race")) args.push("-race");
+  if ((!process.argv.includes("--bench") && !benchUnion) || process.argv.includes("--race")) args.push("-race");
+  if (benchUnion) args.push("-bench", "BenchmarkMapUnion", "-benchtime=30x");
   if (process.argv.includes("--bench")) args.push("-bench", "BenchmarkMapLookup", "-benchtime=10000x");
   args.push(baseline ? "./bridge" : "./...");
   console.log(baseline ? "Previous curried callback ABI, same Map source" : "Native Map and generated binary callback bridge");

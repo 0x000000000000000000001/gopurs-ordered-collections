@@ -418,6 +418,27 @@ func (t *BTree) UnionWith(other *BTree, f CombineFn) *BTree {
 	return asTree(finalRes)
 }
 
+// PureScript maps of the same key type use a coherent Ord instance. At that
+// boundary, reuse the larger tree and insert only the smaller side. Keep the
+// raw UnionWith method above for trees that may have different orderings.
+func unionWithSameOrdering(left, right *BTree, f CombineFn) *BTree {
+	// Overlapping keys need two updates below. Keep the original path for
+	// similarly sized maps; a fourfold imbalance also wins with full overlap.
+	if left.size == 0 || left.size > right.size/4 {
+		return left.UnionWith(right, f)
+	}
+
+	return asTree(left.Foldl(func(acc, key, value interface{}) interface{} {
+		tree := asTree(acc)
+		if existing, ok := tree.Lookup(key); ok {
+			// Insert preserves an existing key. Replace it explicitly so an
+			// Ord-equivalent key still has the left map's representative.
+			return tree.Delete(key).Insert(key, f(value, existing))
+		}
+		return tree.Insert(key, value)
+	}, right))
+}
+
 func (t *BTree) IntersectionWith(other *BTree, f CombineFn) *BTree {
 	res := newBTree(t.compare)
 	if t.size == 0 || other.size == 0 {
@@ -571,7 +592,7 @@ func UnionWithImpl(compare func(interface{}, interface{}) interface{}, fromOrder
 	}
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)
-	return t1.UnionWith(t2, func(v1, v2 interface{}) interface{} {
+	return unionWithSameOrdering(t1, t2, func(v1, v2 interface{}) interface{} {
 		return f(v1)(v2)
 	})
 }
