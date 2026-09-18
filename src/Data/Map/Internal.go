@@ -486,10 +486,10 @@ func Singleton(k interface{}) func(interface{}) interface{} {
 	}
 }
 
-func InsertImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, v interface{}, m interface{}) interface{} {
+func InsertImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, v interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	if tree.Size() == 0 {
 		return newBTree(cmp).Insert(k, v)
@@ -499,10 +499,10 @@ func InsertImpl(compare func(interface{}) func(interface{}) interface{}, fromOrd
 	return tree.Insert(k, v)
 }
 
-func InsertWithImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, k interface{}, v interface{}, m interface{}) interface{} {
+func InsertWithImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, k interface{}, v interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	if tree.Size() == 0 {
 		return newBTree(cmp).Insert(k, v)
@@ -517,13 +517,13 @@ func InsertWithImpl(compare func(interface{}) func(interface{}) interface{}, fro
 	return tree.Insert(k, v)
 }
 
-func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
+func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	if tree.Size() == 0 {
 		return nothing
 	}
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	tree = tree.withCompare(cmp)
 	val, ok := tree.Lookup(k)
@@ -533,13 +533,13 @@ func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare
 	return nothing
 }
 
-func DeleteImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
+func DeleteImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	if tree.Size() == 0 {
 		return m
 	}
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	tree = tree.withCompare(cmp)
 	return tree.Delete(k)
@@ -563,11 +563,11 @@ func ToArrayImpl(tuple func(interface{}) func(interface{}) interface{}, m interf
 	return items
 }
 
-func UnionWithImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
+func UnionWithImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)
@@ -576,11 +576,11 @@ func UnionWithImpl(compare func(interface{}) func(interface{}) interface{}, from
 	})
 }
 
-func IntersectionWithImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
+func IntersectionWithImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)
@@ -589,11 +589,11 @@ func IntersectionWithImpl(compare func(interface{}) func(interface{}) interface{
 	})
 }
 
-func DifferenceImpl(compare func(interface{}) func(interface{}) interface{}, fromOrdering func(interface{}) int, m1 interface{}, m2 interface{}) interface{} {
+func DifferenceImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
 	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a)(b))
+		return fromOrdering(compare(a, b))
 	}
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)

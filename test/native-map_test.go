@@ -42,24 +42,20 @@ func TestToArrayOrderAndPersistence(t *testing.T) {
 }
 
 func TestConcurrentPersistentMap(t *testing.T) {
-	compare := func(a interface{}) func(interface{}) interface{} {
-		return func(b interface{}) interface{} {
-			if a.(int) < b.(int) {
-				return -1
-			}
-			if a.(int) > b.(int) {
-				return 1
-			}
-			return 0
+	compare := func(a, b interface{}) interface{} {
+		if a.(int) < b.(int) {
+			return -1
 		}
+		if a.(int) > b.(int) {
+			return 1
+		}
+		return 0
 	}
 	// Distinct but equivalent comparator closures must not replace one another
 	// on a tree shared by independent computations.
-	comparators := []func(interface{}) func(interface{}) interface{}{
+	comparators := []func(interface{}, interface{}) interface{}{
 		compare,
-		func(a interface{}) func(interface{}) interface{} {
-			return func(b interface{}) interface{} { return compare(a)(b) }
-		},
+		func(a, b interface{}) interface{} { return compare(a, b) },
 	}
 	ordering := func(value interface{}) int { return value.(int) }
 	just := func(value interface{}) interface{} { return value }
