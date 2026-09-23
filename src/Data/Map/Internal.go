@@ -26,6 +26,20 @@ func (n *Node) clone() *Node {
 	return newNode
 }
 
+// insertClone copies a node with room for exactly one more item and child: the
+// insert path appends at most one of each before it splits, so the full
+// maxDegree capacity of clone is not needed. Delete paths keep clone because
+// they may merge several items into a node.
+func (n *Node) insertClone() *Node {
+	newNode := &Node{
+		items:    make([]Item, len(n.items), len(n.items)+1),
+		children: make([]*Node, len(n.children), len(n.children)+1),
+	}
+	copy(newNode.items, n.items)
+	copy(newNode.children, n.children)
+	return newNode
+}
+
 func (n *Node) find(key interface{}, cmp CompareFn) (int, bool) {
 	for i, item := range n.items {
 		c := cmp(key, item.Key)
@@ -122,7 +136,7 @@ func (t *BTree) Insert(key, value interface{}) *BTree {
 
 func (n *Node) insert(key, value interface{}, cmp CompareFn) (*Node, Item, *Node, bool) {
 	i, found := n.find(key, cmp)
-	newNode := n.clone()
+	newNode := n.insertClone()
 
 	if found {
 		newNode.items[i].Value = value
