@@ -1,6 +1,5 @@
 package Data_Map_Internal
 
-
 type CompareFn func(a, b interface{}) int
 
 const maxDegree = 16
@@ -20,20 +19,6 @@ func (n *Node) clone() *Node {
 	newNode := &Node{
 		items:    make([]Item, len(n.items), maxDegree),
 		children: make([]*Node, len(n.children), maxDegree+1),
-	}
-	copy(newNode.items, n.items)
-	copy(newNode.children, n.children)
-	return newNode
-}
-
-// insertClone copies a node with room for exactly one more item and child: the
-// insert path appends at most one of each before it splits, so the full
-// maxDegree capacity of clone is not needed. Delete paths keep clone because
-// they may merge several items into a node.
-func (n *Node) insertClone() *Node {
-	newNode := &Node{
-		items:    make([]Item, len(n.items), len(n.items)+1),
-		children: make([]*Node, len(n.children), len(n.children)+1),
 	}
 	copy(newNode.items, n.items)
 	copy(newNode.children, n.children)
@@ -67,7 +52,6 @@ func asTree(m interface{}) *BTree {
 	}
 	return m.(*BTree)
 }
-
 
 // A comparator belongs to this operation; never mutate a shared persistent tree.
 func (t *BTree) withCompare(cmp CompareFn) *BTree {
@@ -103,8 +87,8 @@ func (n *Node) lookup(key interface{}, cmp CompareFn) (interface{}, bool) {
 func (t *BTree) Insert(key, value interface{}) *BTree {
 	if t.root == nil {
 		return &BTree{
-			root: &Node{items: []Item{{key, value}}},
-			size: 1,
+			root:    &Node{items: []Item{{key, value}}},
+			size:    1,
 			compare: t.compare,
 		}
 	}
@@ -136,9 +120,17 @@ func (t *BTree) Insert(key, value interface{}) *BTree {
 
 func (n *Node) insert(key, value interface{}, cmp CompareFn) (*Node, Item, *Node, bool) {
 	i, found := n.find(key, cmp)
-	newNode := n.insertClone()
+	// The item list always changes, so it is copied with room for the single
+	// item the insert path may append before a split. The child list is copied
+	// only when this node actually descends; a value replacement can share it
+	// because published nodes are never mutated.
+	newNode := &Node{
+		items: make([]Item, len(n.items), len(n.items)+1),
+	}
+	copy(newNode.items, n.items)
 
 	if found {
+		newNode.children = n.children
 		newNode.items[i].Value = value
 		return newNode, Item{}, nil, true
 	}
@@ -148,10 +140,13 @@ func (n *Node) insert(key, value interface{}, cmp CompareFn) (*Node, Item, *Node
 	var rightChild *Node
 
 	if len(n.children) == 0 {
+		newNode.children = nil
 		newNode.items = append(newNode.items, Item{})
 		copy(newNode.items[i+1:], newNode.items[i:])
 		newNode.items[i] = Item{key, value}
 	} else {
+		newNode.children = make([]*Node, len(n.children), len(n.children)+1)
+		copy(newNode.children, n.children)
 		var childNew *Node
 		childNew, splitItem, rightChild, replaced = n.children[i].insert(key, value, cmp)
 		newNode.children[i] = childNew
@@ -230,7 +225,7 @@ func (n *Node) delete(key interface{}, cmp CompareFn) (*Node, bool) {
 		predChild, predItem := n.children[i].deleteMax()
 		newNode.items[i] = predItem
 		newNode.children[i] = predChild
-		
+
 		newNode.rebalanceChild(i)
 		return newNode, true
 	}
@@ -252,7 +247,7 @@ func (n *Node) deleteMax() (*Node, Item) {
 		newNode.items = newNode.items[:len(newNode.items)-1]
 		return newNode, item
 	}
-	
+
 	lastIdx := len(n.children) - 1
 	childNew, item := n.children[lastIdx].deleteMax()
 	newNode.children[lastIdx] = childNew
@@ -272,18 +267,18 @@ func (n *Node) rebalanceChild(i int) {
 	if i > 0 && len(n.children[i-1].items) > minItems {
 		leftSib := n.children[i-1].clone()
 		newChild := child.clone()
-		
+
 		// Move n.items[i-1] down to child
 		newChild.items = append([]Item{n.items[i-1]}, newChild.items...)
 		if len(leftSib.children) > 0 {
 			newChild.children = append([]*Node{leftSib.children[len(leftSib.children)-1]}, newChild.children...)
 			leftSib.children = leftSib.children[:len(leftSib.children)-1]
 		}
-		
+
 		// Move leftSib's last item up to n
 		n.items[i-1] = leftSib.items[len(leftSib.items)-1]
 		leftSib.items = leftSib.items[:len(leftSib.items)-1]
-		
+
 		n.children[i-1] = leftSib
 		n.children[i] = newChild
 		return
@@ -293,18 +288,18 @@ func (n *Node) rebalanceChild(i int) {
 	if i < len(n.children)-1 && len(n.children[i+1].items) > minItems {
 		rightSib := n.children[i+1].clone()
 		newChild := child.clone()
-		
+
 		// Move n.items[i] down to child
 		newChild.items = append(newChild.items, n.items[i])
 		if len(rightSib.children) > 0 {
 			newChild.children = append(newChild.children, rightSib.children[0])
 			rightSib.children = rightSib.children[1:]
 		}
-		
+
 		// Move rightSib's first item up to n
 		n.items[i] = rightSib.items[0]
 		rightSib.items = rightSib.items[1:]
-		
+
 		n.children[i+1] = rightSib
 		n.children[i] = newChild
 		return
@@ -320,7 +315,7 @@ func (n *Node) rebalanceChild(i int) {
 		if len(child.children) > 0 {
 			leftSib.children = append(leftSib.children, child.children...)
 		}
-		
+
 		// Remove n.items[i-1] and n.children[i]
 		n.items = append(n.items[:i-1], n.items[i:]...)
 		n.children = append(n.children[:i], n.children[i+1:]...)
@@ -329,13 +324,13 @@ func (n *Node) rebalanceChild(i int) {
 		// Merge children[i] and children[i+1]
 		newChild := child.clone()
 		rightSib := n.children[i+1]
-		
+
 		newChild.items = append(newChild.items, n.items[i])
 		newChild.items = append(newChild.items, rightSib.items...)
 		if len(rightSib.children) > 0 {
 			newChild.children = append(newChild.children, rightSib.children...)
 		}
-		
+
 		n.items = append(n.items[:i], n.items[i+1:]...)
 		n.children = append(n.children[:i+1], n.children[i+2:]...)
 		n.children[i] = newChild
@@ -495,7 +490,6 @@ func (t *BTree) Difference(other *BTree) *BTree {
 	return asTree(finalRes)
 }
 
-
 // FFI Wrappers
 
 var Empty = func() interface{} {
@@ -514,18 +508,16 @@ func IsEmpty(m interface{}) bool {
 func Singleton(k interface{}) func(interface{}) interface{} {
 	return func(v interface{}) interface{} {
 		return &BTree{
-			root: &Node{items: []Item{{k, v}}},
-			size: 1,
+			root:    &Node{items: []Item{{k, v}}},
+			size:    1,
 			compare: nil, // compare will be injected on next insert
 		}
 	}
 }
 
-func InsertImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, v interface{}, m interface{}) interface{} {
+func InsertImpl(compareInt func(interface{}, interface{}) int, k interface{}, v interface{}, m interface{}) interface{} {
 	tree := asTree(m)
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	if tree.Size() == 0 {
 		return newBTree(cmp).Insert(k, v)
 	}
@@ -534,16 +526,14 @@ func InsertImpl(compare func(interface{}, interface{}) interface{}, fromOrdering
 	return tree.Insert(k, v)
 }
 
-func InsertWithImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, k interface{}, v interface{}, m interface{}) interface{} {
+func InsertWithImpl(compareInt func(interface{}, interface{}) int, f func(interface{}) func(interface{}) interface{}, k interface{}, v interface{}, m interface{}) interface{} {
 	tree := asTree(m)
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	if tree.Size() == 0 {
 		return newBTree(cmp).Insert(k, v)
 	}
 	tree = tree.withCompare(cmp)
-	
+
 	existing, ok := tree.Lookup(k)
 	if ok {
 		newVal := f(existing)(v)
@@ -552,14 +542,12 @@ func InsertWithImpl(compare func(interface{}, interface{}) interface{}, fromOrde
 	return tree.Insert(k, v)
 }
 
-func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
+func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compareInt func(interface{}, interface{}) int, k interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	if tree.Size() == 0 {
 		return nothing
 	}
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	tree = tree.withCompare(cmp)
 	val, ok := tree.Lookup(k)
 	if ok {
@@ -568,14 +556,12 @@ func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare
 	return nothing
 }
 
-func DeleteImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, k interface{}, m interface{}) interface{} {
+func DeleteImpl(compareInt func(interface{}, interface{}) int, k interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	if tree.Size() == 0 {
 		return m
 	}
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	tree = tree.withCompare(cmp)
 	return tree.Delete(k)
 }
@@ -598,12 +584,10 @@ func ToArrayImpl(tuple func(interface{}) func(interface{}) interface{}, m interf
 	return items
 }
 
-func UnionWithImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
+func UnionWithImpl(compareInt func(interface{}, interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)
 	return unionWithSameOrdering(t1, t2, func(v1, v2 interface{}) interface{} {
@@ -611,12 +595,10 @@ func UnionWithImpl(compare func(interface{}, interface{}) interface{}, fromOrder
 	})
 }
 
-func IntersectionWithImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
+func IntersectionWithImpl(compareInt func(interface{}, interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)
 	return t1.IntersectionWith(t2, func(v1, v2 interface{}) interface{} {
@@ -624,12 +606,10 @@ func IntersectionWithImpl(compare func(interface{}, interface{}) interface{}, fr
 	})
 }
 
-func DifferenceImpl(compare func(interface{}, interface{}) interface{}, fromOrdering func(interface{}) int, m1 interface{}, m2 interface{}) interface{} {
+func DifferenceImpl(compareInt func(interface{}, interface{}) int, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
-	cmp := func(a, b interface{}) int {
-		return fromOrdering(compare(a, b))
-	}
+	cmp := compareInt
 	t1 = t1.withCompare(cmp)
 	t2 = t2.withCompare(cmp)
 	return t1.Difference(t2)
@@ -681,7 +661,6 @@ func FoldrImpl(f func(interface{}) func(interface{}) func(interface{}) interface
 		return f(acc)(key)(value)
 	}, z)
 }
-
 
 func FilterKeysImpl(p func(interface{}) interface{}, m interface{}) interface{} {
 	tree := asTree(m)

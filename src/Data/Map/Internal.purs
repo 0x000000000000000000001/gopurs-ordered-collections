@@ -66,36 +66,39 @@ foreign import isEmpty :: forall k v. Map k v -> Boolean
 
 foreign import singleton :: forall k v. k -> v -> Map k v
 
-fromOrdering :: Ordering -> Int
-fromOrdering = case _ of
+-- | Comparateur natif unique. Passer `compare` et un décodeur d'`Ordering`
+-- | séparément faisait traverser deux frontières FFI (et deux boxages) par
+-- | comparaison ; le comparateur renvoie directement un entier.
+compareInt :: forall k. Ord k => k -> k -> Int
+compareInt a b = case compare a b of
   LT -> -1
   EQ -> 0
   GT -> 1
 
-foreign import insertImpl :: forall k v. (k -> k -> Ordering) -> (Ordering -> Int) -> k -> v -> Map k v -> Map k v
+foreign import insertImpl :: forall k v. (k -> k -> Int) -> k -> v -> Map k v -> Map k v
 
 insert :: forall k v. Ord k => k -> v -> Map k v -> Map k v
-insert = insertImpl compare fromOrdering
+insert = insertImpl compareInt
 
-foreign import insertWithImpl :: forall k v. (k -> k -> Ordering) -> (Ordering -> Int) -> (v -> v -> v) -> k -> v -> Map k v -> Map k v
+foreign import insertWithImpl :: forall k v. (k -> k -> Int) -> (v -> v -> v) -> k -> v -> Map k v -> Map k v
 
 insertWith :: forall k v. Ord k => (v -> v -> v) -> k -> v -> Map k v -> Map k v
-insertWith = insertWithImpl compare fromOrdering
+insertWith = insertWithImpl compareInt
 
-foreign import lookupImpl :: forall k v. (v -> Maybe v) -> Maybe v -> (k -> k -> Ordering) -> (Ordering -> Int) -> k -> Map k v -> Maybe v
+foreign import lookupImpl :: forall k v. (v -> Maybe v) -> Maybe v -> (k -> k -> Int) -> k -> Map k v -> Maybe v
 
 lookup :: forall k v. Ord k => k -> Map k v -> Maybe v
-lookup = lookupImpl Just Nothing compare fromOrdering
+lookup = lookupImpl Just Nothing compareInt
 
 member :: forall k v. Ord k => k -> Map k v -> Boolean
 member k m = case lookup k m of
   Nothing -> false
   Just _  -> true
 
-foreign import deleteImpl :: forall k v. (k -> k -> Ordering) -> (Ordering -> Int) -> k -> Map k v -> Map k v
+foreign import deleteImpl :: forall k v. (k -> k -> Int) -> k -> Map k v -> Map k v
 
 delete :: forall k v. Ord k => k -> Map k v -> Map k v
-delete = deleteImpl compare fromOrdering
+delete = deleteImpl compareInt
 
 foreign import keysImpl :: forall k v. Map k v -> Array k
 keys :: forall k v. Map k v -> List k
@@ -105,23 +108,23 @@ foreign import valuesImpl :: forall k v. Map k v -> Array v
 values :: forall k v. Map k v -> List v
 values m = List.fromFoldable (valuesImpl m)
 
-foreign import unionWithImpl :: forall k v. (k -> k -> Ordering) -> (Ordering -> Int) -> (v -> v -> v) -> Map k v -> Map k v -> Map k v
+foreign import unionWithImpl :: forall k v. (k -> k -> Int) -> (v -> v -> v) -> Map k v -> Map k v -> Map k v
 unionWith :: forall k v. Ord k => (v -> v -> v) -> Map k v -> Map k v -> Map k v
-unionWith = unionWithImpl compare fromOrdering
+unionWith = unionWithImpl compareInt
 
 union :: forall k v. Ord k => Map k v -> Map k v -> Map k v
 union = unionWith const
 
-foreign import intersectionWithImpl :: forall k a b c. (k -> k -> Ordering) -> (Ordering -> Int) -> (a -> b -> c) -> Map k a -> Map k b -> Map k c
+foreign import intersectionWithImpl :: forall k a b c. (k -> k -> Int) -> (a -> b -> c) -> Map k a -> Map k b -> Map k c
 intersectionWith :: forall k a b c. Ord k => (a -> b -> c) -> Map k a -> Map k b -> Map k c
-intersectionWith = intersectionWithImpl compare fromOrdering
+intersectionWith = intersectionWithImpl compareInt
 
 intersection :: forall k a b. Ord k => Map k a -> Map k b -> Map k a
 intersection = intersectionWith const
 
-foreign import differenceImpl :: forall k v w. (k -> k -> Ordering) -> (Ordering -> Int) -> Map k v -> Map k w -> Map k v
+foreign import differenceImpl :: forall k v w. (k -> k -> Int) -> Map k v -> Map k w -> Map k v
 difference :: forall k v w. Ord k => Map k v -> Map k w -> Map k v
-difference = differenceImpl compare fromOrdering
+difference = differenceImpl compareInt
 
 foreign import sizeImpl :: forall k v. Map k v -> Int
 

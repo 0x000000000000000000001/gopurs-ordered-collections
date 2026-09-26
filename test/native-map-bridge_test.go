@@ -6,20 +6,7 @@ import (
 	"testing"
 )
 
-// Nonstandard tokens ensure the FFI keeps consulting fromOrdering.
-var less, equal, greater = r.Int(37), r.Int(19), r.Int(53)
-var fromOrdering = r.Func(func(value r.Value) r.Value {
-	switch r.Unbox[int64](value) {
-	case 37:
-		return r.Int(-1)
-	case 19:
-		return r.Int(0)
-	case 53:
-		return r.Int(1)
-	default:
-		panic("unknown ordering token")
-	}
-})
+// The bridge must keep consulting the comparator for every operation.
 var just = r.Func(func(value r.Value) r.Value { return value })
 var nothing = r.Int(-999)
 var combine = r.Func2(func(a, b r.Value) r.Value { return r.Int(10*r.Unbox[int64](a) + r.Unbox[int64](b)) })
@@ -34,12 +21,12 @@ func comparator(curried, reverse bool, calls *int) r.Value {
 			x, y = y, x
 		}
 		if x < y {
-			return less
+			return r.Int(-1)
 		}
 		if x > y {
-			return greater
+			return r.Int(1)
 		}
-		return equal
+		return r.Int(0)
 	}
 	if !curried {
 		return r.Func2(fn)
@@ -47,10 +34,10 @@ func comparator(curried, reverse bool, calls *int) r.Value {
 	return r.Func(func(a r.Value) r.Value { return r.Func(func(b r.Value) r.Value { return fn(a, b) }) })
 }
 func insert(cmp r.Value, key, value int64, tree r.Value) r.Value {
-	return r.Apply5(_Gopurs_Map_InsertImpl, cmp, fromOrdering, r.Int(key), r.Int(value), tree)
+	return r.Apply4(_Gopurs_Map_InsertImpl, cmp, r.Int(key), r.Int(value), tree)
 }
 func lookup(cmp r.Value, key int64, tree r.Value) int64 {
-	return r.Unbox[int64](r.Apply6(_Gopurs_Map_LookupImpl, just, nothing, cmp, fromOrdering, r.Int(key), tree))
+	return r.Unbox[int64](r.Apply5(_Gopurs_Map_LookupImpl, just, nothing, cmp, r.Int(key), tree))
 }
 func keys(tree r.Value) []int64 {
 	raw := Map_KeysImpl(tree)
@@ -84,35 +71,35 @@ func TestGeneratedBridgeCustomOrderingAndPersistence(t *testing.T) {
 			if lookup(cmp, 9, tree) != -999 {
 				t.Fatal("missing lookup")
 			}
-			updated := r.Apply6(_Gopurs_Map_InsertWithImpl, cmp, fromOrdering, combine, r.Int(2), r.Int(7), tree)
+			updated := r.Apply5(_Gopurs_Map_InsertWithImpl, cmp, combine, r.Int(2), r.Int(7), tree)
 			if lookup(cmp, 2, updated) != 27 || lookup(cmp, 2, tree) != 2 {
 				t.Fatal("insertWith or persistence")
 			}
-			deleted := r.Apply4(_Gopurs_Map_DeleteImpl, cmp, fromOrdering, r.Int(3), tree)
+			deleted := r.Apply3(_Gopurs_Map_DeleteImpl, cmp, r.Int(3), tree)
 			if lookup(cmp, 3, deleted) != -999 || lookup(cmp, 3, tree) != 3 {
 				t.Fatal("delete or persistence")
 			}
 			other := insert(cmp, 5, 5, insert(cmp, 2, 8, r.Box(Map_Empty)))
-			union := r.Apply5(_Gopurs_Map_UnionWithImpl, cmp, fromOrdering, combine, tree, other)
+			union := r.Apply4(_Gopurs_Map_UnionWithImpl, cmp, combine, tree, other)
 			if lookup(cmp, 2, union) != 28 || lookup(cmp, 5, union) != 5 || Map_SizeImpl(union) != 5 {
 				t.Fatal("unionWith")
 			}
 			// Check both operand orders through the real runtime bridge.
-			unionSmallLeft := r.Apply5(_Gopurs_Map_UnionWithImpl, cmp, fromOrdering, combine, other, tree)
+			unionSmallLeft := r.Apply4(_Gopurs_Map_UnionWithImpl, cmp, combine, other, tree)
 			if lookup(cmp, 2, unionSmallLeft) != 82 || lookup(cmp, 5, unionSmallLeft) != 5 || Map_SizeImpl(unionSmallLeft) != 5 {
 				t.Fatal("unionWith with smaller left map")
 			}
 			// A singleton against four keys exercises the size-aware path.
 			single := insert(cmp, 2, 8, r.Box(Map_Empty))
-			unionSingletonLeft := r.Apply5(_Gopurs_Map_UnionWithImpl, cmp, fromOrdering, combine, single, tree)
+			unionSingletonLeft := r.Apply4(_Gopurs_Map_UnionWithImpl, cmp, combine, single, tree)
 			if lookup(cmp, 2, unionSingletonLeft) != 82 || !reflect.DeepEqual(keys(unionSingletonLeft), expected) {
 				t.Fatal("unionWith with singleton left map")
 			}
-			intersection := r.Apply5(_Gopurs_Map_IntersectionWithImpl, cmp, fromOrdering, combine, tree, other)
+			intersection := r.Apply4(_Gopurs_Map_IntersectionWithImpl, cmp, combine, tree, other)
 			if !reflect.DeepEqual(keys(intersection), []int64{2}) || lookup(cmp, 2, intersection) != 28 {
 				t.Fatal("intersectionWith")
 			}
-			difference := r.Apply4(_Gopurs_Map_DifferenceImpl, cmp, fromOrdering, tree, other)
+			difference := r.Apply3(_Gopurs_Map_DifferenceImpl, cmp, tree, other)
 			expectedDifference := []int64{1, 3, 4}
 			if reverse {
 				expectedDifference = []int64{4, 3, 1}

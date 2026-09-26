@@ -43,8 +43,7 @@ func TestUnionWithSizesOrderingAndPersistence(t *testing.T) {
 				} {
 					expected := left.UnionWith(right, combine)
 					actual := asTree(UnionWithImpl(
-						func(a, b interface{}) interface{} { return compare(a, b) },
-						func(v interface{}) int { return v.(int) },
+						compare,
 						func(a interface{}) func(interface{}) interface{} {
 							return func(b interface{}) interface{} { return combine(a, b) }
 						}, left, right))
@@ -210,7 +209,7 @@ func TestToArrayOrderAndPersistence(t *testing.T) {
 }
 
 func TestConcurrentPersistentMap(t *testing.T) {
-	compare := func(a, b interface{}) interface{} {
+	compare := func(a, b interface{}) int {
 		if a.(int) < b.(int) {
 			return -1
 		}
@@ -221,11 +220,10 @@ func TestConcurrentPersistentMap(t *testing.T) {
 	}
 	// Distinct but equivalent comparator closures must not replace one another
 	// on a tree shared by independent computations.
-	comparators := []func(interface{}, interface{}) interface{}{
+	comparators := []func(interface{}, interface{}) int{
 		compare,
-		func(a, b interface{}) interface{} { return compare(a, b) },
+		func(a, b interface{}) int { return compare(a, b) },
 	}
-	ordering := func(value interface{}) int { return value.(int) }
 	just := func(value interface{}) interface{} { return value }
 	first := func(a interface{}) func(interface{}) interface{} {
 		return func(_ interface{}) interface{} { return a }
@@ -235,7 +233,7 @@ func TestConcurrentPersistentMap(t *testing.T) {
 	}
 	var original interface{} = Empty
 	for key := 0; key < 64; key++ {
-		original = InsertImpl(compare, ordering, key, key*10, original)
+		original = InsertImpl(compare, key, key*10, original)
 	}
 	var workers sync.WaitGroup
 	for worker := 0; worker < 8; worker++ {
@@ -245,31 +243,31 @@ func TestConcurrentPersistentMap(t *testing.T) {
 			cmp := comparators[worker%len(comparators)]
 			for iteration := 0; iteration < 100; iteration++ {
 				key := iteration % 64
-				if got := LookupImpl(just, nil, cmp, ordering, key, original); got != key*10 {
+				if got := LookupImpl(just, nil, cmp, key, original); got != key*10 {
 					t.Errorf("lookup %d: %v", key, got)
 				}
-				inserted := InsertImpl(cmp, ordering, 64+worker, worker, original)
+				inserted := InsertImpl(cmp, 64+worker, worker, original)
 				if SizeImpl(inserted) != 65 {
 					t.Error("insert size")
 				}
-				if SizeImpl(DeleteImpl(cmp, ordering, key, original)) != 63 {
+				if SizeImpl(DeleteImpl(cmp, key, original)) != 63 {
 					t.Error("delete size")
 				}
-				if SizeImpl(UnionWithImpl(cmp, ordering, first, original, inserted)) != 65 {
+				if SizeImpl(UnionWithImpl(cmp, first, original, inserted)) != 65 {
 					t.Error("union size")
 				}
 				// A colliding singleton exercises the size-aware Delete+Insert path.
-				combined := UnionWithImpl(cmp, ordering, combine, Singleton(key)(worker+1), original)
+				combined := UnionWithImpl(cmp, combine, Singleton(key)(worker+1), original)
 				if SizeImpl(combined) != 64 {
 					t.Error("singleton union size")
 				}
-				if got := LookupImpl(just, nil, cmp, ordering, key, combined); got != (worker+1)*1000+key*10 {
+				if got := LookupImpl(just, nil, cmp, key, combined); got != (worker+1)*1000+key*10 {
 					t.Errorf("singleton union %d: %v", key, got)
 				}
-				if SizeImpl(IntersectionWithImpl(cmp, ordering, first, original, inserted)) != 64 {
+				if SizeImpl(IntersectionWithImpl(cmp, first, original, inserted)) != 64 {
 					t.Error("intersection size")
 				}
-				if SizeImpl(DifferenceImpl(cmp, ordering, inserted, original)) != 1 {
+				if SizeImpl(DifferenceImpl(cmp, inserted, original)) != 1 {
 					t.Error("difference size")
 				}
 			}
@@ -280,7 +278,7 @@ func TestConcurrentPersistentMap(t *testing.T) {
 		t.Fatal("shared input was changed")
 	}
 	for key := 0; key < 64; key++ {
-		if got := LookupImpl(just, nil, compare, ordering, key, original); got != key*10 {
+		if got := LookupImpl(just, nil, compare, key, original); got != key*10 {
 			t.Fatalf("shared input key %d changed to %v", key, got)
 		}
 	}
