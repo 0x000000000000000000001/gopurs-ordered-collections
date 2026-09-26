@@ -2,7 +2,7 @@ package Data_Map_Internal
 
 type CompareFn func(a, b interface{}) int
 
-const maxDegree = 16
+const maxDegree = 6
 const minItems = (maxDegree - 1) / 2
 
 type Item struct {
