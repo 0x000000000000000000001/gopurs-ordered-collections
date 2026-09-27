@@ -21,3 +21,13 @@ export const foldrImpl = function(a, b, c) { return [a, b, c]; };
 export const toArrayImpl = () => () => {
   throw new Error("Data.Map.Internal.toArrayImpl requires the native Go backend");
 };
+
+// Les entrées à comparateur natif n'existent que pour le backend Go ; le
+// comparateur opaque n'a pas de représentation JavaScript.
+export const lookupNativeImpl = () => () => () => () => () => {
+  throw new Error("Data.Map.Internal.lookupNativeImpl requires the native Go backend");
+};
+
+export const insertNativeImpl = () => () => () => () => {
+  throw new Error("Data.Map.Internal.insertNativeImpl requires the native Go backend");
+};

@@ -556,6 +556,38 @@ func LookupImpl(just func(interface{}) interface{}, nothing interface{}, compare
 	return nothing
 }
 
+// LookupNative is the raw native-comparator lookup: the comparator is only
+// visible to Go, and absence is reported with a boolean instead of a boxed
+// `Maybe` (whose representation belongs to the caller's backend).
+func LookupNative(compare CompareFn, k interface{}, m interface{}) (interface{}, bool) {
+	tree := asTree(m)
+	if tree.Size() == 0 {
+		return nil, false
+	}
+	return tree.withCompare(compare).Lookup(k)
+}
+
+// InsertNative is the raw native-comparator insert. As with every other
+// operation the comparator belongs to this call; the shared tree is untouched.
+func InsertNative(compare CompareFn, k interface{}, v interface{}, m interface{}) interface{} {
+	tree := asTree(m)
+	if tree.Size() == 0 {
+		return newBTree(compare).Insert(k, v)
+	}
+	return tree.withCompare(compare).Insert(k, v)
+}
+
+func LookupNativeImpl(compare CompareFn, just func(interface{}) interface{}, nothing interface{}, k interface{}, m interface{}) interface{} {
+	if val, ok := LookupNative(compare, k, m); ok {
+		return just(val)
+	}
+	return nothing
+}
+
+func InsertNativeImpl(compare CompareFn, k interface{}, v interface{}, m interface{}) interface{} {
+	return InsertNative(compare, k, v, m)
+}
+
 func DeleteImpl(compareInt func(interface{}, interface{}) int, k interface{}, m interface{}) interface{} {
 	tree := asTree(m)
 	if tree.Size() == 0 {

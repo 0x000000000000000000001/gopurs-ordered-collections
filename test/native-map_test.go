@@ -283,3 +283,62 @@ func TestConcurrentPersistentMap(t *testing.T) {
 		}
 	}
 }
+
+func TestNativeComparatorEntryPoints(t *testing.T) {
+	compare := func(a, b interface{}) int {
+		x, y := a.(string), b.(string)
+		if x < y {
+			return -1
+		}
+		if x > y {
+			return 1
+		}
+		return 0
+	}
+	var tree interface{} = Empty
+	for _, key := range []string{"b", "a", "c"} {
+		tree = InsertNative(compare, key, key+"!", tree)
+	}
+	if SizeImpl(tree) != 3 {
+		t.Fatalf("native insert size: %d", SizeImpl(tree))
+	}
+	for _, key := range []string{"a", "b", "c"} {
+		value, ok := LookupNative(compare, key, tree)
+		if !ok || value != key+"!" {
+			t.Fatalf("native lookup %q: %v, %t", key, value, ok)
+		}
+	}
+	if _, ok := LookupNative(compare, "z", tree); ok {
+		t.Fatal("native lookup found an absent key")
+	}
+	// Insertions stay persistent: the input tree is never mutated.
+	inserted := InsertNative(compare, "d", "d!", tree)
+	if SizeImpl(tree) != 3 || SizeImpl(inserted) != 4 {
+		t.Fatalf("native persistence: %d / %d", SizeImpl(tree), SizeImpl(inserted))
+	}
+	// Replacing an existing key keeps one entry and updates the value.
+	replaced := InsertNative(compare, "a", "A!", tree)
+	if SizeImpl(replaced) != 3 {
+		t.Fatalf("native replacement size: %d", SizeImpl(replaced))
+	}
+	if value, _ := LookupNative(compare, "a", replaced); value != "A!" {
+		t.Fatalf("native replacement: %v", value)
+	}
+	// The PS-visible wrappers consult just/nothing exactly once.
+	just := func(value interface{}) interface{} { return value }
+	if got := LookupNativeImpl(compare, just, nil, "b", tree); got != "b!" {
+		t.Fatalf("LookupNativeImpl: %v", got)
+	}
+	if got := LookupNativeImpl(compare, just, "absent", "z", tree); got != "absent" {
+		t.Fatalf("LookupNativeImpl absent: %v", got)
+	}
+	// Native and wrapper insertion must preserve the ordered iteration.
+	expected := newBTree(compare)
+	for _, key := range []string{"b", "a", "c", "d"} {
+		expected = expected.Insert(key, key+"!")
+	}
+	actual := asTree(InsertNativeImpl(compare, "d", "d!", tree))
+	if !reflect.DeepEqual(unionEntries(expected), unionEntries(actual)) {
+		t.Fatal("native insert changed the iteration order")
+	}
+}

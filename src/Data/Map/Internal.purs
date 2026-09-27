@@ -8,6 +8,9 @@ module Data.Map.Internal
   , lookup
   , member
   , delete
+  , Comparator
+  , lookupNativeImpl
+  , insertNativeImpl
   , keys
   , values
   , union
@@ -74,6 +77,32 @@ compareInt a b = case compare a b of
   LT -> -1
   EQ -> 0
   GT -> 1
+
+-- | Comparateur natif opaque. Côté Go c'est une `func(a, b interface{}) int`
+-- | (typiquement créée par le backend FFI) ; côté JS la valeur n'est jamais
+-- | utilisée, les points d'entrée natifs n'existant que pour le backend Go.
+foreign import data Comparator :: Type -> Type
+
+-- | `lookup` avec un comparateur natif : aucune comparaison ne traverse le
+-- | dictionnaire `Ord` (ni son boxage). `just`/`nothing` construisent le
+-- | `Maybe` côté Go, où le `Maybe` natif n'est pas visible.
+foreign import lookupNativeImpl
+  :: forall k v
+   . Comparator k
+  -> (v -> Maybe v)
+  -> Maybe v
+  -> k
+  -> Map k v
+  -> Maybe v
+
+-- | `insert` avec un comparateur natif (une opération, arbre partagé intact).
+foreign import insertNativeImpl
+  :: forall k v
+   . Comparator k
+  -> k
+  -> v
+  -> Map k v
+  -> Map k v
 
 foreign import insertImpl :: forall k v. (k -> k -> Int) -> k -> v -> Map k v -> Map k v
 
