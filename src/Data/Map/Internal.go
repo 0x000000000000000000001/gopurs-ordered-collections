@@ -627,6 +627,14 @@ func UnionWithImpl(compareInt func(interface{}, interface{}) int, f func(interfa
 	})
 }
 
+// UnionWithNative is UnionWithImpl with a native comparator: the combine
+// callback still crosses the backend boundary, but comparisons never do.
+func UnionWithNative(compare CompareFn, f CombineFn, m1 interface{}, m2 interface{}) interface{} {
+	t1 := asTree(m1).withCompare(compare)
+	t2 := asTree(m2).withCompare(compare)
+	return unionWithSameOrdering(t1, t2, f)
+}
+
 func IntersectionWithImpl(compareInt func(interface{}, interface{}) int, f func(interface{}) func(interface{}) interface{}, m1 interface{}, m2 interface{}) interface{} {
 	t1 := asTree(m1)
 	t2 := asTree(m2)
